@@ -16,6 +16,11 @@ public:
 	static void SendPOSTRequest(FString Endpoint, FString Path, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
 	static void SendAuthenticatedPOSTRequest(FString Endpoint, FString Path, FString PIT, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
 	static void SendAuthenticatedGETRequest(FString Endpoint, FString Path, FString PIT, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
+	static void SendAuthenticatedPlayFabPOSTRequest(FString Path, FString SessionTicket, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
+	static FString GetFieldFromJson(TSharedPtr<FJsonObject> Content, FString StringField);
+	static TArray<FString> GetListFromJson(TSharedPtr<FJsonObject> Content, FString StringField);
+	static FString GetFieldFromJson(FString ContentString, FString StringField);
+	static TArray<FString> GetListFromJson(FString ContentString, FString StringField);
 
 	UPROPERTY(Config)
 	FString PlayFabTitleID;

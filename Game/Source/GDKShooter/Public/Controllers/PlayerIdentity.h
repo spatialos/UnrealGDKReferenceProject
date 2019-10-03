@@ -40,6 +40,8 @@ public:
 
 	void BindToLoginComplete(const FOnFullLoginComplete& OnComplete);
 
+	void DebugLoginWitCustomPlayFabIdAndName(FString CustomID, FString DisplayName);
+
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "PlayerIdentity")
 	FString GetPlayFabId();
 
@@ -49,7 +51,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "PlayerIdentity")
 	FString GetPlayerIdentityToken();
 
-	
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "StavkaIdentity")
+	FString GetSessionTicket();
 
 private:
 	// First log into Google.
@@ -73,6 +76,10 @@ private:
 	// Finally finish the flow.
 	void OnLoginFlowComplete(bool Success, const FString& Message);
 
+	// The debug methods to get a custom playfab id and name
+	void OnLoginWithPlayFabCustomID(const PlayFab::ClientModels::FLoginResult& LoginResult);
+	void OnUpdateUserTitleDisplayName(const PlayFab::ClientModels::FUpdateUserTitleDisplayNameResult& UpdateDisplayNameResult);
+
 	FOnFullLoginCompleteMulticast OnCompleteDelegate;
 	FDelegateHandle LoginCompleteHandle;
 
@@ -83,6 +90,7 @@ private:
 	FString GoogleID;
 	FString GoogleAccessToken;
 	FString PlayFabID;
+	FString SessionTicket;
 	FString DisplayName;
 	FString PlayerIdentityToken;
 

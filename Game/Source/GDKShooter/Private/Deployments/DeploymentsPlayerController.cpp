@@ -14,6 +14,7 @@ void ADeploymentsPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	bShowMouseCursor = true;
+	PartySystem = NewObject<UPartySystem>();
 
 	QueryPIT();
 }
@@ -35,6 +36,12 @@ void OnLoginTokens(void* UserData, const Worker_Alpha_LoginTokensResponse* Login
 	{
 		UE_LOG(LogGDK, Log, TEXT("Failure: Error %s"), UTF8_TO_TCHAR(LoginTokens->status.detail));
 	}
+}
+
+// Get the Player Identity and do the debug login there.
+void ADeploymentsPlayerController::LoginWitCustomPlayFabIdAndName(FString CustomID, FString DisplayName)
+{
+	PartySystem->GetPlayerIdentity()->DebugLoginWitCustomPlayFabIdAndName(CustomID, DisplayName);
 }
 
 void OnPlayerIdentityToken(void* UserData, const Worker_Alpha_PlayerIdentityTokenResponse* PIToken)

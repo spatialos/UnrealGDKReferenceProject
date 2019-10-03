@@ -174,6 +174,7 @@ void UPlayerIdentity::StartPlayFabLogin()
 void UPlayerIdentity::OnPlayFabLoginSuccess(const ClientModels::FLoginResult& LoginResult)
 {
 	PlayFabID = LoginResult.PlayFabId;
+	SessionTicket = LoginResult.SessionTicket;
 
 	RequestPlayerIdentityToken(LoginResult.SessionTicket);
 }
@@ -311,4 +312,49 @@ FString UPlayerIdentity::GetPlayerDisplayName()
 FString UPlayerIdentity::GetPlayerIdentityToken()
 {
 	return PlayerIdentityToken;
+}
+
+FString UPlayerIdentity::GetSessionTicket()
+{
+	return SessionTicket;
+}
+
+void UPlayerIdentity::DebugLoginWitCustomPlayFabIdAndName(FString CustomID, FString DisplayName)
+{
+	this->DisplayName = DisplayName;
+	PlayFab::ClientModels::FLoginWithCustomIDRequest Request;
+	Request.CustomId = CustomID;
+	Request.CreateAccount = true;
+
+	PlayFabClientPtr ClientApi = IPlayFabModuleInterface::Get().GetClientAPI();
+
+	ClientApi->LoginWithCustomID(Request,
+		PlayFab::UPlayFabClientAPI::FLoginWithCustomIDDelegate::CreateUObject(this, &UPlayerIdentity::OnLoginWithPlayFabCustomID),
+		PlayFab::FPlayFabErrorDelegate::CreateLambda([](const PlayFab::FPlayFabCppError&) {
+		UE_LOG(LogTemp, Error, TEXT("Failed to login to PlayFab!"));
+	}));
+}
+
+void UPlayerIdentity::OnLoginWithPlayFabCustomID(const PlayFab::ClientModels::FLoginResult& LoginResult)
+{
+	PlayFabID = LoginResult.PlayFabId;
+	SessionTicket = LoginResult.SessionTicket;
+
+	PlayFab::ClientModels::FUpdateUserTitleDisplayNameRequest Request;
+	Request.DisplayName = DisplayName;
+
+	PlayFabClientPtr ClientApi = IPlayFabModuleInterface::Get().GetClientAPI();
+
+	ClientApi->UpdateUserTitleDisplayName(Request,
+		PlayFab::UPlayFabClientAPI::FUpdateUserTitleDisplayNameDelegate::CreateUObject(this, &UPlayerIdentity::OnUpdateUserTitleDisplayName),
+		PlayFab::FPlayFabErrorDelegate::CreateLambda([](const PlayFab::FPlayFabCppError&) {
+		UE_LOG(LogTemp, Error, TEXT("Failed to update PlayFab display name!"));
+	})
+	);
+}
+
+void UPlayerIdentity::OnUpdateUserTitleDisplayName(const PlayFab::ClientModels::FUpdateUserTitleDisplayNameResult& UpdateDisplayNameResult)
+{
+	DisplayName = UpdateDisplayNameResult.DisplayName;
+	UE_LOG(LogTemp, Display, TEXT("Successfully updated display name to %s"), *UpdateDisplayNameResult.DisplayName);
 }
