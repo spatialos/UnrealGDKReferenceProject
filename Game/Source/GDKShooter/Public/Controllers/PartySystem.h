@@ -65,7 +65,7 @@ DECLARE_DELEGATE_OneParam(FRequestResponse_Internal, bool);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FFriendListResponse, FFriendDetailsList, FriendsList);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FInvitesListResponse, FInviteDetailsList, InvitesList);
 
-UCLASS()
+UCLASS(BlueprintType)
 class GDKSHOOTER_API UPartySystem : public UObject
 {
 	GENERATED_BODY()
