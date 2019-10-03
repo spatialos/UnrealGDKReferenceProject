@@ -1,0 +1,3 @@
+[submodule "spatial/workers/database-sync-worker"]
+	path = spatial/workers/database-sync-worker
+	url = git@github.com:spatialos/database-sync-worker.git
