@@ -97,6 +97,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PartySystem")
 	void InformOfPlayerIdentity(UPlayerIdentity* PlayerIdentity);
 
+	UFUNCTION(BlueprintPure, Category = "PartySystem")
 	UPlayerIdentity* GetPlayerIdentity() { return IsValid(PlayerIdentity) ? PlayerIdentity : nullptr; }
 
 private:
