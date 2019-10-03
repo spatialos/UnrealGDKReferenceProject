@@ -13,7 +13,9 @@ class GDKSHOOTER_API UOnlineServicesLibrary : public UBlueprintFunctionLibrary
 
 public:
 	static void SetupPlayFabSettings();
-	static void SendHTTPRequest(FString Endpoint, FString Path, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
+	static void SendPOSTRequest(FString Endpoint, FString Path, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
+	static void SendAuthenticatedPOSTRequest(FString Endpoint, FString Path, FString PIT, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
+	static void SendAuthenticatedGETRequest(FString Endpoint, FString Path, FString PIT, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback);
 
 	UPROPERTY(Config)
 	FString PlayFabTitleID;

@@ -19,7 +19,7 @@ DEFINE_LOG_CATEGORY(LogOnlineServices);
 
 using namespace PlayFab;
 
-const FString CACHED_AUTH_FILE(FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT("Player"), TEXT("CachedAuth.ini")));
+const FString CACHED_AUTH_FILE(FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT("ReferenceProject"), TEXT("CachedAuth.ini")));
 const FString CACHED_AUTH_GOOGLE_SECTION(TEXT("/Google"));
 
 const FString CACHED_AUTH_ID(TEXT("Id"));
@@ -183,11 +183,12 @@ void UPlayerIdentity::RequestPlayerIdentityToken(const FString& SessionTicket)
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField(TEXT("playfabToken"), *FString::Printf(TEXT("%s"), *SessionTicket));
 
-	UOnlineServicesLibrary::SendHTTPRequest("playfab-auth", "exchange_playfab_token", Content, [this](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendPOSTRequest("playfab-auth", "exchange_playfab_token", Content, [this](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		if (bSuccess)
 		{
 			PlayerIdentityToken = Output->GetStringField("playerIdentityToken");
+			UE_LOG(LogTemp, Log, TEXT("Get PIT: %s"), *PlayerIdentityToken);
 			UpdatePlayFabDisplayName();
 		}
 		else
@@ -224,6 +225,77 @@ void UPlayerIdentity::OnPlayFabFailure(const FPlayFabCppError& Error)
 {
 	UE_LOG(LogTemp, Error, TEXT("PlayFab API Error: %s"), *Error.GenerateErrorReport());
 	OnCompleteDelegate.Broadcast(false, Error.GenerateErrorReport());
+}
+
+void UPlayerIdentity::CreateParty(const FOnOperationComplete& OnComplete)
+{
+	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "delete_party", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	{
+		FString OutputString;
+		TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
+		FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
+
+		UE_LOG(LogTemp, Log, TEXT("Party response: %s"), *OutputString);
+
+		if (bSuccess)
+		{
+			TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
+			Content->SetNumberField(TEXT("minMembers"), 1);
+			Content->SetNumberField(TEXT("maxMembers"), 3);
+
+			UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "create_party", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+			{
+				FString OutputString;
+				TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
+				FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
+
+				UE_LOG(LogTemp, Log, TEXT("Party response: %s"), *OutputString);
+
+				if (bSuccess)
+				{
+					PartyID = Output->GetStringField(TEXT("partyId"));
+					OnComplete.ExecuteIfBound(true, PartyID);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Error, TEXT("Failed to Create Party"));
+					OnComplete.ExecuteIfBound(false, TEXT("Failed to Create Party"));
+				}
+			});
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to Create Party"));
+			OnComplete.ExecuteIfBound(false, TEXT("Failed to Create Party"));
+		}
+	});
+}
+
+void UPlayerIdentity::JoinMatchmaking(const FOnOperationComplete& OnComplete)
+{
+	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
+	Content->SetStringField(TEXT("matchmakingType"), TEXT("match"));
+
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("gateway", "join", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	{
+		FString OutputString;
+		TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
+		FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
+
+		UE_LOG(LogTemp, Log, TEXT("Join response: %s"), *OutputString);
+
+		UOnlineServicesLibrary::SendAuthenticatedGETRequest("gateway", *FString::Printf(TEXT("operations/%s"), *PlayFabID), PlayerIdentityToken, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+		{
+			FString OutputString;
+			TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
+			FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
+
+			UE_LOG(LogTemp, Log, TEXT("Get response: %s"), *OutputString);
+		});
+		
+		// OnComplete.ExecuteIfBound(true, *FString::Printf(TEXT("%s"), *OutputString));
+	});
 }
 
 FString UPlayerIdentity::GetPlayFabId()

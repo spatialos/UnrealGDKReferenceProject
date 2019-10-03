@@ -20,6 +20,8 @@ DECLARE_DYNAMIC_DELEGATE(FOnRemoveExternalUI);
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnFullLoginComplete, const bool, Success, const FString&, Message);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFullLoginCompleteMulticast, const bool, Success, const FString&, Message);
 
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnOperationComplete, const bool, Success, const FString&, Message);
+
 UCLASS(BlueprintType)
 class GDKSHOOTER_API UPlayerIdentity : public UObject
 {
@@ -29,6 +31,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, meta = (WorldContext = "WorldContextObject"))
 	void Login(UObject* WorldContextObject, const FOnAddExternalUI& OnAddExternalUI, const FOnRemoveExternalUI& OnRemoveExternalUI, const FOnFullLoginComplete& OnComplete);
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerIdentity")
+	void CreateParty(const FOnOperationComplete& OnComplete);
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerIdentity")
+	void JoinMatchmaking(const FOnOperationComplete& OnComplete);
 
 	void BindToLoginComplete(const FOnFullLoginComplete& OnComplete);
 
@@ -40,6 +48,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "PlayerIdentity")
 	FString GetPlayerIdentityToken();
+
+	
 
 private:
 	// First log into Google.
@@ -75,6 +85,8 @@ private:
 	FString PlayFabID;
 	FString DisplayName;
 	FString PlayerIdentityToken;
+
+	FString PartyID;
 
 	bool bCurrentlyLoggingIn = false;
 };

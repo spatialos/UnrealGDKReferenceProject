@@ -17,7 +17,7 @@ void UOnlineServicesLibrary::SetupPlayFabSettings()
 	AdminApi->SetDevSecretKey(DefaultObject->PlayFabSecretKey);
 }
 
-void UOnlineServicesLibrary::SendHTTPRequest(FString Endpoint, FString Path, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback)
+void UOnlineServicesLibrary::SendPOSTRequest(FString Endpoint, FString Path, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback)
 {
 	// Get the CDO so we can read the config values.
 	UOnlineServicesLibrary* DefaultObject = Cast<UOnlineServicesLibrary>(UOnlineServicesLibrary::StaticClass()->GetDefaultObject());
@@ -32,7 +32,81 @@ void UOnlineServicesLibrary::SendHTTPRequest(FString Endpoint, FString Path, TSh
 	HttpRequest->SetHeader("Content-Type", "application/json");
 	HttpRequest->SetURL(*FString::Printf(TEXT("http://%s.endpoints.%s.cloud.goog/v1/%s"), *Endpoint, *DefaultObject->GoogleCloudProjectID, *Path));
 
+	UE_LOG(LogTemp, Log, TEXT("Sent POST request to %s: %s"), *HttpRequest->GetURL(), *OutputString);
+
 	HttpRequest->SetContentAsString(OutputString);
+
+	HttpRequest->OnProcessRequestComplete().BindLambda([Callback](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+	{
+		if (bWasSuccessful && Response->GetContentType() == "application/json")
+		{
+			TSharedPtr<FJsonObject> Output = MakeShareable(new FJsonObject());
+			TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
+			FJsonSerializer::Deserialize(JsonReader, Output);
+
+			Callback(true, Output);
+		}
+		else
+		{
+			Callback(false, nullptr);
+		}
+	});
+
+	HttpRequest->ProcessRequest();
+}
+
+void UOnlineServicesLibrary::SendAuthenticatedPOSTRequest(FString Endpoint, FString Path, FString PIT, TSharedPtr<FJsonObject> Content, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback)
+{
+	// Get the CDO so we can read the config values.
+	UOnlineServicesLibrary* DefaultObject = Cast<UOnlineServicesLibrary>(UOnlineServicesLibrary::StaticClass()->GetDefaultObject());
+
+	FString OutputString;
+	TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(Content.ToSharedRef(), JsonWriter);
+
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+	HttpRequest->SetVerb("POST");
+	HttpRequest->SetHeader("Content-Type", "application/json");
+	HttpRequest->SetHeader("player-identity-token", PIT);
+	HttpRequest->SetURL(*FString::Printf(TEXT("http://%s.endpoints.%s.cloud.goog/v1/%s"), *Endpoint, *DefaultObject->GoogleCloudProjectID, *Path));
+
+	UE_LOG(LogTemp, Log, TEXT("Sent POST request to %s: %s"), *HttpRequest->GetURL(), *OutputString);
+
+	HttpRequest->SetContentAsString(OutputString);
+
+	HttpRequest->OnProcessRequestComplete().BindLambda([Callback](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+	{
+		if (bWasSuccessful && Response->GetContentType() == "application/json")
+		{
+			TSharedPtr<FJsonObject> Output = MakeShareable(new FJsonObject());
+			TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());
+			FJsonSerializer::Deserialize(JsonReader, Output);
+
+			Callback(true, Output);
+		}
+		else
+		{
+			Callback(false, nullptr);
+		}
+	});
+
+	HttpRequest->ProcessRequest();
+}
+
+void UOnlineServicesLibrary::SendAuthenticatedGETRequest(FString Endpoint, FString Path, FString PIT, TFunction<void(const bool, TSharedPtr<FJsonObject>)> Callback)
+{
+	// Get the CDO so we can read the config values.
+	UOnlineServicesLibrary* DefaultObject = Cast<UOnlineServicesLibrary>(UOnlineServicesLibrary::StaticClass()->GetDefaultObject());
+
+	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+	HttpRequest->SetVerb("GET");
+	HttpRequest->SetHeader("Content-Type", "application/json");
+	HttpRequest->SetHeader("player-identity-token", PIT);
+	HttpRequest->SetURL(*FString::Printf(TEXT("http://%s.endpoints.%s.cloud.goog/v1/%s"), *Endpoint, *DefaultObject->GoogleCloudProjectID, *Path));
+
+	UE_LOG(LogTemp, Log, TEXT("Sent GET request to %s"), *HttpRequest->GetURL());
 
 	HttpRequest->OnProcessRequestComplete().BindLambda([Callback](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 	{
