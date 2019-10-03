@@ -163,7 +163,7 @@ void UPartySystem::SendInviteByName(FString Name, const FRequestResponse& OnInvi
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField("TitleDisplayName", Name);
-	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("/Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [this, Name, OnInviteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [this, Name, OnInviteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		if (!bSuccess)
 		{
@@ -310,7 +310,7 @@ void UPartySystem::CacheDetailsFromPlayFab(FString PlayerId)
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField("PlayFabId", PlayerId);
-	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("/Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [this, PlayerId](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [this, PlayerId](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		if (bSuccess)
 		{

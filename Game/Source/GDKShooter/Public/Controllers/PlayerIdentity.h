@@ -33,9 +33,6 @@ public:
 	void Login(UObject* WorldContextObject, const FOnAddExternalUI& OnAddExternalUI, const FOnRemoveExternalUI& OnRemoveExternalUI, const FOnFullLoginComplete& OnComplete);
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerIdentity")
-	void CreateParty(const FOnOperationComplete& OnComplete);
-
-	UFUNCTION(BlueprintCallable, Category = "PlayerIdentity")
 	void JoinMatchmaking(const FOnOperationComplete& OnComplete);
 
 	void BindToLoginComplete(const FOnFullLoginComplete& OnComplete);

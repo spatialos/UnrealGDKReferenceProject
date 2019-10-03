@@ -140,7 +140,7 @@ void UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest(FString Path, F
 	HttpRequest->SetVerb("POST");
 	HttpRequest->SetHeader("Content-Type", "application/json");
 	HttpRequest->SetHeader("X-Authentication", SessionTicket);
-	HttpRequest->SetURL(*FString::Printf(TEXT("https://%s.playfabapi.com/%"), *DefaultObject->PlayFabTitleID, *Path));
+	HttpRequest->SetURL(*FString::Printf(TEXT("https://%s.playfabapi.com/%s"), *DefaultObject->PlayFabTitleID, *Path));
 
 	UE_LOG(LogTemp, Log, TEXT("Sent POST request to %s: %s"), *HttpRequest->GetURL(), *OutputString);
 
@@ -148,7 +148,7 @@ void UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest(FString Path, F
 
 	HttpRequest->OnProcessRequestComplete().BindLambda([Callback](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 	{
-		if (bWasSuccessful && Response->GetContentType() == "application/json")
+		if (bWasSuccessful)
 		{
 			TSharedPtr<FJsonObject> Output = MakeShareable(new FJsonObject());
 			TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(Response->GetContentAsString());

@@ -228,51 +228,6 @@ void UPlayerIdentity::OnPlayFabFailure(const FPlayFabCppError& Error)
 	OnCompleteDelegate.Broadcast(false, Error.GenerateErrorReport());
 }
 
-void UPlayerIdentity::CreateParty(const FOnOperationComplete& OnComplete)
-{
-	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "delete_party", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
-	{
-		FString OutputString;
-		TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
-		FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
-
-		UE_LOG(LogTemp, Log, TEXT("Party response: %s"), *OutputString);
-
-		if (bSuccess)
-		{
-			TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-			Content->SetNumberField(TEXT("minMembers"), 1);
-			Content->SetNumberField(TEXT("maxMembers"), 3);
-
-			UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "create_party", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
-			{
-				FString OutputString;
-				TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
-				FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
-
-				UE_LOG(LogTemp, Log, TEXT("Party response: %s"), *OutputString);
-
-				if (bSuccess)
-				{
-					PartyID = Output->GetStringField(TEXT("partyId"));
-					OnComplete.ExecuteIfBound(true, PartyID);
-				}
-				else
-				{
-					UE_LOG(LogTemp, Error, TEXT("Failed to Create Party"));
-					OnComplete.ExecuteIfBound(false, TEXT("Failed to Create Party"));
-				}
-			});
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to Create Party"));
-			OnComplete.ExecuteIfBound(false, TEXT("Failed to Create Party"));
-		}
-	});
-}
-
 void UPlayerIdentity::JoinMatchmaking(const FOnOperationComplete& OnComplete)
 {
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
@@ -343,14 +298,15 @@ void UPlayerIdentity::OnLoginWithPlayFabCustomID(const PlayFab::ClientModels::FL
 	PlayFab::ClientModels::FUpdateUserTitleDisplayNameRequest Request;
 	Request.DisplayName = DisplayName;
 
+	RequestPlayerIdentityToken(SessionTicket);
+
 	PlayFabClientPtr ClientApi = IPlayFabModuleInterface::Get().GetClientAPI();
 
 	ClientApi->UpdateUserTitleDisplayName(Request,
 		PlayFab::UPlayFabClientAPI::FUpdateUserTitleDisplayNameDelegate::CreateUObject(this, &UPlayerIdentity::OnUpdateUserTitleDisplayName),
 		PlayFab::FPlayFabErrorDelegate::CreateLambda([](const PlayFab::FPlayFabCppError&) {
 		UE_LOG(LogTemp, Error, TEXT("Failed to update PlayFab display name!"));
-	})
-	);
+	}));
 }
 
 void UPlayerIdentity::OnUpdateUserTitleDisplayName(const PlayFab::ClientModels::FUpdateUserTitleDisplayNameResult& UpdateDisplayNameResult)
