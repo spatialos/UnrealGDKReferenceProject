@@ -17,21 +17,21 @@ namespace improbable {
 class SpatialType
 {
 public:
-	virtual ~SpatialType() = 0 {};
+	virtual ~SpatialType() = 0;
 	virtual void Serialize(Schema_Object* SchemaObject) const = 0;
 };
 
 class SpatialComponent
 {
 public:
-	virtual ~SpatialComponent() = 0 {};
+	virtual ~SpatialComponent() = 0;
 	virtual void Serialize(Schema_ComponentData* ComponentData) const = 0;
 };
 
 class SpatialComponentUpdate
 {
 public:
-	virtual ~SpatialComponentUpdate() = 0 {};
+	virtual ~SpatialComponentUpdate() = 0;
 	virtual void Serialize(Schema_ComponentUpdate* ComponentUpdate) const = 0;
 };
 
@@ -40,7 +40,7 @@ class ExternalSchemaOp
 public:
 	ExternalSchemaOp(Worker_EntityId EntityId) : EntityId{ EntityId } {}
 	Worker_EntityId EntityId;
-	virtual ~ExternalSchemaOp() = 0 {};
+	virtual ~ExternalSchemaOp() = 0;
 };
 
 template<typename ComponentData>
