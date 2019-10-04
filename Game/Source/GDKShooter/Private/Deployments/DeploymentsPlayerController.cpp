@@ -155,6 +155,19 @@ void ADeploymentsPlayerController::JoinDeployment(const FString& LoginToken)
 	ClientTravel(TravelURL.ToString(), TRAVEL_Absolute, false);
 }
 
+void ADeploymentsPlayerController::JoinDeploymentUsingPIT(const FString& PIToken, const FString& LoginToken)
+{
+	FURL TravelURL;
+	TravelURL.Host = TEXT("locator.improbable.io");
+	TravelURL.AddOption(TEXT("locator"));
+	TravelURL.AddOption(*FString::Printf(TEXT("playeridentity=%s"), *PIToken));
+	TravelURL.AddOption(*FString::Printf(TEXT("login=%s"), *LoginToken));
+
+	OnLoadingStarted.Broadcast();
+
+	ClientTravel(TravelURL.ToString(), TRAVEL_Absolute, false);
+}
+
 void ADeploymentsPlayerController::SetLoadingScreen(UUserWidget* LoadingScreen)
 {
 	GetGameInstance()->GetGameViewportClient()->AddViewportWidgetContent(LoadingScreen->TakeWidget());

@@ -66,6 +66,9 @@ public:
 	void JoinDeployment(const FString& LoginToken);
 
 	UFUNCTION(BlueprintCallable)
+	void JoinDeploymentUsingPIT(const FString& PIToken, const FString& LoginToken);
+
+	UFUNCTION(BlueprintCallable)
 	void SetLoadingScreen(UUserWidget* LoadingScreen);
 
 private:
