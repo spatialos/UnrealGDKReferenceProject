@@ -21,6 +21,7 @@ DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnFullLoginComplete, const bool, Success, co
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFullLoginCompleteMulticast, const bool, Success, const FString&, Message);
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnOperationComplete, const bool, Success, const FString&, Message);
+DECLARE_DYNAMIC_DELEGATE_FourParams(FOnCheckQueueStatusComplete, const bool, IsQueued, const bool, FoundMatch, const FString&, LoginToken, const FString&, DeploymentName);
 
 UCLASS(BlueprintType)
 class GDKSHOOTER_API UPlayerIdentity : public UObject
@@ -34,6 +35,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "PlayerIdentity")
 	void JoinMatchmaking(const FOnOperationComplete& OnComplete);
+
+	UFUNCTION(BlueprintCallable, Category = "PlayerIdentity")
+	void CheckQueueStatus(const FOnCheckQueueStatusComplete& OnComplete);
 
 	void BindToLoginComplete(const FOnFullLoginComplete& OnComplete);
 
@@ -61,7 +65,7 @@ private:
 	void OnPlayFabLoginSuccess(const PlayFab::ClientModels::FLoginResult& LoginResult);
 
 	// Get player identity token from online services
-	void RequestPlayerIdentityToken(const FString& SessionTicket);
+	void RequestPlayerIdentityToken();
 
 	// Make sure their name is up to date (probably can do this more efficiently
 	void UpdatePlayFabDisplayName();

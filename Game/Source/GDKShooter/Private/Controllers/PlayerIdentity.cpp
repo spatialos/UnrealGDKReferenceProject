@@ -6,6 +6,7 @@
 #include "PlayFab.h"
 #include "Core/PlayFabClientAPI.h"
 #include "OnlineServicesLibrary.h"
+#include "SpatialWorkerConnection.h"
 
 #if PLATFORM_WINDOWS
 #include "Components/NativeWidgetHost.h"
@@ -176,10 +177,10 @@ void UPlayerIdentity::OnPlayFabLoginSuccess(const ClientModels::FLoginResult& Lo
 	PlayFabID = LoginResult.PlayFabId;
 	SessionTicket = LoginResult.SessionTicket;
 
-	RequestPlayerIdentityToken(LoginResult.SessionTicket);
+	RequestPlayerIdentityToken();
 }
 
-void UPlayerIdentity::RequestPlayerIdentityToken(const FString& SessionTicket)
+void UPlayerIdentity::RequestPlayerIdentityToken()
 {
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField(TEXT("playfabToken"), *FString::Printf(TEXT("%s"), *SessionTicket));
@@ -241,16 +242,40 @@ void UPlayerIdentity::JoinMatchmaking(const FOnOperationComplete& OnComplete)
 
 		UE_LOG(LogTemp, Log, TEXT("Join response: %s"), *OutputString);
 
-		UOnlineServicesLibrary::SendAuthenticatedGETRequest("gateway", *FString::Printf(TEXT("operations/%s"), *PlayFabID), PlayerIdentityToken, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
-		{
-			FString OutputString;
-			TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
-			FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
+		OnComplete.ExecuteIfBound(bSuccess, *FString::Printf(TEXT("%s"), *OutputString));
+	});
+}
 
-			UE_LOG(LogTemp, Log, TEXT("Get response: %s"), *OutputString);
-		});
-		
-		// OnComplete.ExecuteIfBound(true, *FString::Printf(TEXT("%s"), *OutputString));
+void UPlayerIdentity::CheckQueueStatus(const FOnCheckQueueStatusComplete& OnComplete)
+{
+	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
+	Content->SetStringField(TEXT("playerId"), *PlayFabID);
+
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("gateway", "get_join_status", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	{
+		FString OutputString;
+		TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
+		FJsonSerializer::Serialize(Output.ToSharedRef(), JsonWriter);
+
+		UE_LOG(LogTemp, Log, TEXT("Check queue status response: %s"), *OutputString);
+
+		FString Status;
+		if (Output->TryGetStringField("status", Status))
+		{
+			if (Status == "MATCHING" || Status == "WAITING")
+			{
+				OnComplete.ExecuteIfBound(true, false, TEXT(""), TEXT(""));
+				return;
+			}
+			
+			if (Status == "JOINED" && Output->HasField("loginToken") && Output->HasField("deploymentName"))
+			{
+				OnComplete.ExecuteIfBound(false, true, Output->GetStringField("loginToken"), Output->GetStringField("deploymentName"));
+				return;
+			}
+		}
+
+		OnComplete.ExecuteIfBound(false, false, TEXT(""), TEXT(""));
 	});
 }
 
@@ -274,9 +299,9 @@ FString UPlayerIdentity::GetSessionTicket()
 	return SessionTicket;
 }
 
-void UPlayerIdentity::DebugLoginWitCustomPlayFabIdAndName(FString CustomID, FString DisplayName)
+void UPlayerIdentity::DebugLoginWitCustomPlayFabIdAndName(FString CustomID, FString CustomName)
 {
-	this->DisplayName = DisplayName;
+	DisplayName = CustomName;
 	PlayFab::ClientModels::FLoginWithCustomIDRequest Request;
 	Request.CustomId = CustomID;
 	Request.CreateAccount = true;
@@ -298,7 +323,7 @@ void UPlayerIdentity::OnLoginWithPlayFabCustomID(const PlayFab::ClientModels::FL
 	PlayFab::ClientModels::FUpdateUserTitleDisplayNameRequest Request;
 	Request.DisplayName = DisplayName;
 
-	RequestPlayerIdentityToken(SessionTicket);
+	RequestPlayerIdentityToken();
 
 	PlayFabClientPtr ClientApi = IPlayFabModuleInterface::Get().GetClientAPI();
 
