@@ -10,6 +10,8 @@ The project contains gameplay and assets that are representative of a basic firs
 
 For setup instructions, follow the [Example Project guide](https://docs.improbable.io/unreal/latest/content/get-started/example-project/exampleproject-intro)  in the GDK for Unreal documentation. 
 
+To setup the required Online Services with custom matchmaking, see the instructions in the [CustomMatcher](CustomMatcher/README.md) folder.
+
 For more information, see the [SpatialOS GDK for Unreal documentation](https://docs.improbable.io/unreal/latest/).
 
 #### Game controls
