@@ -6,9 +6,16 @@
 #include "SpatialWorkerConnection.h"
 #include "ExternalSchemaCodegen/improbable/database_sync/DatabaseSyncService.h"
 #include "GameFramework/GameStateBase.h"
+#include "OnlineServicesLibrary.h"
 
 void UCorridorShooterGameInstance::Init()
 {
+	Super::Init();
+
+	PlayerIdentity = NewObject<UPlayerIdentity>(this);
+
+	SetupPlayFab();
+
 	OnConnected.AddLambda([this]() {
 		// On the client the world may not be completely set up, if so we can use the PendingNetGame
 		USpatialNetDriver* NetDriver = Cast<USpatialNetDriver>(GetWorld()->GetNetDriver());
@@ -63,4 +70,9 @@ void UCorridorShooterGameInstance::Init()
 			Deathmatch->ItemUpdateEvent(Op);
 		});
 	});
+}
+
+void UCorridorShooterGameInstance::SetupPlayFab()
+{
+	UOnlineServicesLibrary::SetupPlayFabSettings();
 }

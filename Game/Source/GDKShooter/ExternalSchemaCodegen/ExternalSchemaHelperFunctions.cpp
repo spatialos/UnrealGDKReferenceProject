@@ -3,6 +3,12 @@
 #include "ExternalSchemaHelperFunctions.h"
 
 namespace improbable {
+
+SpatialType::~SpatialType() {}
+SpatialComponent::~SpatialComponent() {}
+SpatialComponentUpdate::~SpatialComponentUpdate() {}
+ExternalSchemaOp::~ExternalSchemaOp() {}
+
 namespace utils {
 
 void AddBytes(Schema_Object* SchemaObject, Schema_FieldId FieldId, const TArray<uint8>& Value)

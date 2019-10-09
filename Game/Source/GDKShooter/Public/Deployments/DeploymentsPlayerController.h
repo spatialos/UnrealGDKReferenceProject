@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Blueprint/UserWidget.h"
 #include <WorkerSDK/improbable/c_worker.h>
+#include "PartySystem.h"
 
 #include "DeploymentsPlayerController.generated.h"
 
@@ -13,18 +14,18 @@ USTRUCT(BlueprintType)
 struct FDeploymentInfo {
 	GENERATED_BODY()
 
-		UPROPERTY(BlueprintReadOnly)
-		FString DeploymentId;
 	UPROPERTY(BlueprintReadOnly)
-		FString DeploymentName;
+	FString DeploymentId;
 	UPROPERTY(BlueprintReadOnly)
-		FString LoginToken;
+	FString DeploymentName;
 	UPROPERTY(BlueprintReadOnly)
-		int32 PlayerCount = 0;
+	FString LoginToken;
 	UPROPERTY(BlueprintReadOnly)
-		int32 MaxPlayerCount = 0;
+	int32 PlayerCount = 0;
 	UPROPERTY(BlueprintReadOnly)
-		bool bAvailable = false;
+	int32 MaxPlayerCount = 0;
+	UPROPERTY(BlueprintReadOnly)
+	bool bAvailable = false;
 };
 
 UCLASS()
@@ -36,13 +37,19 @@ public:
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDeploymentsEvent, const TArray<FDeploymentInfo>&, DeploymentList);
 	UPROPERTY(BlueprintAssignable)
-		FDeploymentsEvent OnDeploymentsReceived;
+	FDeploymentsEvent OnDeploymentsReceived;
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FLoadingEvent);
 	UPROPERTY(BlueprintAssignable)
-		FLoadingEvent OnLoadingStarted;
+	FLoadingEvent OnLoadingStarted;
 	UPROPERTY(BlueprintAssignable)
-		FLoadingEvent OnLoadingFailed;
+	FLoadingEvent OnLoadingFailed;
+
+	UPROPERTY(BlueprintReadOnly)
+	UPartySystem* PartySystem;
+
+	UFUNCTION(Exec)
+	void LoginWitCustomPlayFabIdAndName(FString CustomID, FString DisplayName);
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -56,10 +63,13 @@ public:
 	FTimerHandle QueryDeploymentsTimer;
 
 	UFUNCTION(BlueprintCallable)
-		void JoinDeployment(const FString& LoginToken);
+	void JoinDeployment(const FString& LoginToken);
 
 	UFUNCTION(BlueprintCallable)
-		void SetLoadingScreen(UUserWidget* LoadingScreen);
+	void JoinDeploymentUsingPIT(const FString& PIToken, const FString& LoginToken);
+
+	UFUNCTION(BlueprintCallable)
+	void SetLoadingScreen(UUserWidget* LoadingScreen);
 
 private:
 

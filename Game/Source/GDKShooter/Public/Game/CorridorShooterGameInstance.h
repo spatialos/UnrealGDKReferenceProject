@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "EngineClasses/SpatialGameInstance.h"
 #include "ExternalSchemaCodegen/ExternalSchemaInterface.h"
+#include "PlayerIdentity.h"
 #include "CorridorShooterGameInstance.generated.h"
 
 /**
@@ -19,6 +20,9 @@ public:
 
 	void Init();
 
+	UPROPERTY(BlueprintReadOnly)
+	class UPlayerIdentity* PlayerIdentity;
+
 	ExternalSchemaInterface* GetExternalSchemaInterface()
 	{
 		return ExternalSchema;
@@ -30,6 +34,7 @@ public:
 	}
 
 protected:
+	void SetupPlayFab();
 
 	UPROPERTY()
 		TMap<FString, int32> PlayerScoreMap;
