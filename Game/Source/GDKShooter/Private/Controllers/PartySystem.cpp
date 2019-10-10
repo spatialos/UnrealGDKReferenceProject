@@ -26,7 +26,7 @@ void UPartySystem::InitialiseToEmptyParty(const FRequestResponse& OnInitialisedR
 	DeleteParty(FRequestResponse_Internal::CreateWeakLambda(this, [this, OnInitialisedResponse](bool bSuccess) {
 		if (bSuccess)
 		{
-			CreateParty(FRequestResponse_Internal::CreateWeakLambda(this, [this, OnInitialisedResponse](bool bSuccess) {
+			CreateParty(FRequestResponse_Internal::CreateLambda([OnInitialisedResponse](bool bSuccess) {
 				if (bSuccess)
 				{
 					OnInitialisedResponse.ExecuteIfBound("", true);
@@ -160,7 +160,7 @@ void UPartySystem::LeavePartyAndCreateOwn()
 	LeaveParty(FRequestResponse_Internal::CreateWeakLambda(this, [this](bool bSuccess) {
 		if (bSuccess)
 		{
-			CreateParty(FRequestResponse_Internal::CreateWeakLambda(this, [this](bool bSuccess) {
+			CreateParty(FRequestResponse_Internal::CreateLambda([](bool bSuccess) {
 				UE_LOG(LogTemp, Log, TEXT("Successfully left and recreated party."));
 			}));
 		}
