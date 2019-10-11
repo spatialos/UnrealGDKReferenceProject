@@ -27,7 +27,7 @@ public class GDKShooter : ModuleRules
                 "JsonUtilities",
                 "HTTP",
                 "AIModule",
-                "Playfab",
+                "PlayFab",
                 "PlayFabCpp",
                 "LoginFlow"
             });
