@@ -40,6 +40,16 @@ ClientSecret=<your client secret>
 
 You will need to replace these values with your PlayFab game, GCP project, and GCP credentials created in the steps outlined above.
 
+#### Current Matcher Issues:
+
+##### The matcher can match players into games that are in-progress.
+
+This is because the matcher has no communication from the game server of what state the match is in. The Unreal GDK currently cannot set any deployment tags or worker flags which would let the matcher know this information and relies on an external solution instead. One possible implementation would be to replace the Deployment Pool currently used with the currently unsupported [Deployment Manager](https://github.com/spatialos/deployment-manager) which can be set up to communicate with the game server and update deployment tags accordingly (e.g. status_lobby, status_ingame, etc). The matcher logic could then be easily modified to only look for deployments in a certain game state. The game mode logic would likely need to be modified to wait for more players before automatically starting a game so the matcher has time to fill up the deployment.
+
+##### The game server currently doesn't know which players are in which party.
+
+While every player in the same party will be put into the same match, the game server doesn't know which players belong in which party and assigns them to teams individually. One potential solution for this is for the matcher to maintain a data structure of parties in each match which it then assigns to a worker flag. The Unreal GDK can get (but not set) worker flags through the Worker SDK so it would be able to use this flag to determine which parties should be kept together. The worker flags must be set by the matcher _before_ the deployment is assigned to players so the game server has the information before any clients connect.
+
 #### Public contributors
 
 We are not currently accepting public contributions. However, we are accepting [issues](https://github.com/spatialos/UnrealGDK/issues) and we do want your feedback.
