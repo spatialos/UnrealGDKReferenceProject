@@ -185,18 +185,23 @@ void UPlayerIdentity::RequestPlayerIdentityToken()
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField(TEXT("playfabToken"), *FString::Printf(TEXT("%s"), *SessionTicket));
 
-	UOnlineServicesLibrary::SendPOSTRequest("playfab-auth", "exchange_playfab_token", Content, [this](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	TWeakObjectPtr<UPlayerIdentity> WeakThis = TWeakObjectPtr<UPlayerIdentity>(this);
+	UOnlineServicesLibrary::SendPOSTRequest("playfab-auth", "exchange_playfab_token", Content, [WeakThis](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
+		if (!WeakThis.IsValid())
+		{
+			return;
+		}
 		if (bSuccess)
 		{
-			PlayerIdentityToken = Output->GetStringField("playerIdentityToken");
-			UE_LOG(LogTemp, Log, TEXT("Get PIT: %s"), *PlayerIdentityToken);
-			UpdatePlayFabDisplayName();
+			WeakThis->PlayerIdentityToken = Output->GetStringField("playerIdentityToken");
+			UE_LOG(LogTemp, Log, TEXT("Get PIT: %s"), *WeakThis->PlayerIdentityToken);
+			WeakThis->UpdatePlayFabDisplayName();
 		}
 		else
 		{
 			UE_LOG(LogTemp, Error, TEXT("Failed to get Player Identity Token"));
-			OnCompleteDelegate.Broadcast(false, "Failed to get Player Identity Token");
+			WeakThis->OnCompleteDelegate.Broadcast(false, "Failed to get Player Identity Token");
 		}
 	});
 }
@@ -234,7 +239,7 @@ void UPlayerIdentity::JoinMatchmaking(const FOnOperationComplete& OnComplete)
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField(TEXT("matchmakingType"), TEXT("match"));
 
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("gateway", "join", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("gateway", "join", PlayerIdentityToken, Content, [OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		FString OutputString;
 		TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);
@@ -251,7 +256,7 @@ void UPlayerIdentity::CheckQueueStatus(const FOnCheckQueueStatusComplete& OnComp
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField(TEXT("playerId"), *PlayFabID);
 
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("gateway", "get_join_status", PlayerIdentityToken, Content, [this, OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("gateway", "get_join_status", PlayerIdentityToken, Content, [OnComplete](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		FString OutputString;
 		TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<>::Create(&OutputString);

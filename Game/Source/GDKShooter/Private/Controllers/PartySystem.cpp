@@ -23,10 +23,10 @@ void UPartySystem::InformOfPlayerIdentity(UPlayerIdentity* NewPlayerIdentity)
 
 void UPartySystem::InitialiseToEmptyParty(const FRequestResponse& OnInitialisedResponse)
 {
-	DeleteParty(FRequestResponse_Internal::CreateLambda([this, OnInitialisedResponse](bool bSuccess) {
+	DeleteParty(FRequestResponse_Internal::CreateWeakLambda(this, [this, OnInitialisedResponse](bool bSuccess) {
 		if (bSuccess)
 		{
-			CreateParty(FRequestResponse_Internal::CreateLambda([this, OnInitialisedResponse](bool bSuccess) {
+			CreateParty(FRequestResponse_Internal::CreateLambda([OnInitialisedResponse](bool bSuccess) {
 				if (bSuccess)
 				{
 					OnInitialisedResponse.ExecuteIfBound("", true);
@@ -56,12 +56,17 @@ void UPartySystem::CreateParty(const FRequestResponse_Internal& CreateResponse)
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetNumberField(TEXT("minMembers"), 1);
 	Content->SetNumberField(TEXT("maxMembers"), 5);
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "create_party", PlayerIdentity->GetPlayerIdentityToken(), Content, [this, CreateResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	TWeakObjectPtr<UPartySystem> WeakThis = TWeakObjectPtr<UPartySystem>(this);
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "create_party", PlayerIdentity->GetPlayerIdentityToken(), Content, [WeakThis, CreateResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
+		if (!WeakThis.IsValid())
+		{
+			return;
+		}
 		UE_LOG(LogTemp, Log, TEXT("Success: %d"), bSuccess);
 		if (bSuccess)
 		{
-			CurrentPartyId = UOnlineServicesLibrary::GetFieldFromJson(Output, "partyId");
+			WeakThis->CurrentPartyId = UOnlineServicesLibrary::GetFieldFromJson(Output, "partyId");
 		}
 		CreateResponse.ExecuteIfBound(bSuccess);
 	});
@@ -75,7 +80,7 @@ void UPartySystem::DeleteParty(const FRequestResponse_Internal& DeleteResponse)
 	//	};
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "delete_party", PlayerIdentity->GetPlayerIdentityToken(), Content, [this, DeleteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "delete_party", PlayerIdentity->GetPlayerIdentityToken(), Content, [DeleteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Success: %d"), bSuccess);
 		DeleteResponse.ExecuteIfBound(bSuccess);
@@ -91,7 +96,7 @@ void UPartySystem::LeaveParty(const FRequestResponse_Internal& LeaveResponse)
 	//}
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "leave_party", PlayerIdentity->GetPlayerIdentityToken(), Content, [this, LeaveResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "leave_party", PlayerIdentity->GetPlayerIdentityToken(), Content, [LeaveResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{		
 		UE_LOG(LogTemp, Log, TEXT("Success: %d"), bSuccess);
 		if (bSuccess)
@@ -112,18 +117,23 @@ void UPartySystem::JoinParty(FInviteDetails InviteDetails)
 	// You need to leave your current party to join your new party.
 	// You can't leave a party of size 1, so instead delete it.
 
-	DeleteParty(FRequestResponse_Internal::CreateLambda([this, InviteDetails](bool bSuccess) {
+	DeleteParty(FRequestResponse_Internal::CreateWeakLambda(this, [this, InviteDetails](bool bSuccess) {
 		if (bSuccess)
 		{
 			TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-			UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "join_party/" + InviteDetails.PartyId, PlayerIdentity->GetPlayerIdentityToken(), Content, [this, InviteDetails](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+			TWeakObjectPtr<UPartySystem> WeakThis = TWeakObjectPtr<UPartySystem>(this);
+			UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "join_party/" + InviteDetails.PartyId, PlayerIdentity->GetPlayerIdentityToken(), Content, [WeakThis, InviteDetails](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 			{
+				if (!WeakThis.IsValid())
+				{
+					return;
+				}
 				UE_LOG(LogTemp, Log, TEXT("Success: %d"), bSuccess);
 				if (bSuccess)
 				{
-					CurrentPartyId = UOnlineServicesLibrary::GetFieldFromJson(Output, "partyId");
+					WeakThis->CurrentPartyId = UOnlineServicesLibrary::GetFieldFromJson(Output, "partyId");
 
-					DeleteInvite(InviteDetails.InviteId);
+					WeakThis->DeleteInvite(InviteDetails.InviteId);
 				}
 			});
 		}
@@ -139,7 +149,7 @@ void UPartySystem::DeleteInvite(FString InviteId)
 	//}
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "delete_invite/" + InviteId, PlayerIdentity->GetPlayerIdentityToken(), Content, [this](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "delete_invite/" + InviteId, PlayerIdentity->GetPlayerIdentityToken(), Content, [](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Success: %d"), bSuccess);
 	});
@@ -147,10 +157,10 @@ void UPartySystem::DeleteInvite(FString InviteId)
 
 void UPartySystem::LeavePartyAndCreateOwn()
 {
-	LeaveParty(FRequestResponse_Internal::CreateLambda([this](bool bSuccess) {
+	LeaveParty(FRequestResponse_Internal::CreateWeakLambda(this, [this](bool bSuccess) {
 		if (bSuccess)
 		{
-			CreateParty(FRequestResponse_Internal::CreateLambda([this](bool bSuccess) {
+			CreateParty(FRequestResponse_Internal::CreateLambda([](bool bSuccess) {
 				UE_LOG(LogTemp, Log, TEXT("Successfully left and recreated party."));
 			}));
 		}
@@ -163,8 +173,13 @@ void UPartySystem::SendInviteByName(FString Name, const FRequestResponse& OnInvi
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField("TitleDisplayName", Name);
-	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [this, Name, OnInviteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	TWeakObjectPtr<UPartySystem> WeakThis = TWeakObjectPtr<UPartySystem>(this);
+	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [WeakThis, Name, OnInviteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
+		if (!WeakThis.IsValid())
+		{
+			return;
+		}
 		if (!bSuccess)
 		{
 			OnInviteResponse.ExecuteIfBound("Failed to get the Id from PlayFab.", false);
@@ -181,7 +196,7 @@ void UPartySystem::SendInviteByName(FString Name, const FRequestResponse& OnInvi
 			}
 			else
 			{
-				SendInviteById(Id, OnInviteResponse);
+				WeakThis->SendInviteById(Id, OnInviteResponse);
 			}
 		}
 	});
@@ -198,7 +213,7 @@ void UPartySystem::SendInviteById(FString Id, const FRequestResponse& OnInviteRe
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField(TEXT("receiverPlayerId"), Id);
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "create_invite", PlayerIdentity->GetPlayerIdentityToken(), Content, [this, OnInviteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "create_invite", PlayerIdentity->GetPlayerIdentityToken(), Content, [OnInviteResponse](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
 		if (bSuccess)
 		{
@@ -228,8 +243,13 @@ void UPartySystem::GetInvites(const FInvitesListResponse& OnListCreated)
 	//}
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "list_all_invites", PlayerIdentity->GetPlayerIdentityToken(), Content, [this, OnListCreated](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	TWeakObjectPtr<UPartySystem> WeakThis = TWeakObjectPtr<UPartySystem>(this);
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "list_all_invites", PlayerIdentity->GetPlayerIdentityToken(), Content, [WeakThis, OnListCreated](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
+		if (!WeakThis.IsValid())
+		{
+			return;
+		}
 		if (bSuccess)
 		{
 			TArray<FString> InboundInvites = UOnlineServicesLibrary::GetListFromJson(Output, "inboundInvites");
@@ -255,7 +275,7 @@ void UPartySystem::GetInvites(const FInvitesListResponse& OnListCreated)
 					InvitesList.InviteDetails.Add(InviteDetails);
 				}
 			}
-			InvitesList.SenderDetails = GetFriendDetails(SenderIds);
+			InvitesList.SenderDetails = WeakThis->GetFriendDetails(SenderIds);
 			OnListCreated.ExecuteIfBound(InvitesList);
 		}
 	});
@@ -269,15 +289,20 @@ void UPartySystem::GetCurrentParty(const FFriendListResponse& OnPartyReceived)
 	//	};
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
-	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "get_party_by_player_id", PlayerIdentity->GetPlayerIdentityToken(), Content, [this, OnPartyReceived](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	TWeakObjectPtr<UPartySystem> WeakThis = TWeakObjectPtr<UPartySystem>(this);
+	UOnlineServicesLibrary::SendAuthenticatedPOSTRequest("party", "get_party_by_player_id", PlayerIdentity->GetPlayerIdentityToken(), Content, [WeakThis, OnPartyReceived](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
+		if (!WeakThis.IsValid())
+		{
+			return;
+		}
 		if (bSuccess)
 		{
 			FString Party = UOnlineServicesLibrary::GetFieldFromJson(Output, "party");
 			TArray<FString> PartyIds = UOnlineServicesLibrary::GetListFromJson(Party, "memberIds");
 
 			FFriendDetailsList FriendsList = FFriendDetailsList();
-			FriendsList.Friends = GetFriendDetails(PartyIds);
+			FriendsList.Friends = WeakThis->GetFriendDetails(PartyIds);
 			OnPartyReceived.ExecuteIfBound(FriendsList);
 		}
 	});
@@ -310,8 +335,13 @@ void UPartySystem::CacheDetailsFromPlayFab(FString PlayerId)
 
 	TSharedPtr<FJsonObject> Content = MakeShareable(new FJsonObject());
 	Content->SetStringField("PlayFabId", PlayerId);
-	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [this, PlayerId](const bool bSuccess, TSharedPtr<FJsonObject> Output)
+	TWeakObjectPtr<UPartySystem> WeakThis = TWeakObjectPtr<UPartySystem>(this);
+	UOnlineServicesLibrary::SendAuthenticatedPlayFabPOSTRequest("Client/GetAccountInfo", PlayerIdentity->GetSessionTicket(), Content, [WeakThis, PlayerId](const bool bSuccess, TSharedPtr<FJsonObject> Output)
 	{
+		if (!WeakThis.IsValid())
+		{
+			return;
+		}
 		if (bSuccess)
 		{
 			// Json is structured as data -> AccountInfo -> PlayFabId
@@ -324,7 +354,7 @@ void UPartySystem::CacheDetailsFromPlayFab(FString PlayerId)
 				FFriendDetails Details = FFriendDetails();
 				Details.PlayerId = PlayerId;
 				Details.DisplayName = DisplayName;
-				CachedFriendDetails.Add(PlayerId, Details);
+				WeakThis->CachedFriendDetails.Add(PlayerId, Details);
 			}
 		}
 	});
